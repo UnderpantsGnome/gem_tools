@@ -10,7 +10,7 @@ class GemTools
       else
         require_gem gem_info[:name], gem_info[:version]
       end
-      require gem_info[:name]
+      require gem_info[:require_name] || gem_info[:name]
     end
   end
 end
