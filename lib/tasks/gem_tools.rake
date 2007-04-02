@@ -1,4 +1,5 @@
 require 'yaml'
+require File.dirname(__FILE__) + '/../gem_tools'
 
 namespace :gems do
   require 'rubygems'
@@ -6,9 +7,14 @@ namespace :gems do
   desc "Install required gems based on config/gems.yml"
   task :install do
     # defaults to --no-rdoc, set DOCS=(anything) to build docs
-    docs = (ENV['DOCS'].nil? ? '--no-rdoc' : '')
+    docs = ''
+    if ENV['DOCS'].nil?
+      docs << '--no-rdoc ' unless (`rdoc -v`).nil?
+      docs << '--no-ri ' unless (`ri -v`).nil?
+    end
+
     #grab the list of gems/version to check
-    config = YAML.load_file(File.join('config', 'gems.yml'))
+    config = GemTools.load_config
     gems = config[:gems]
 
     gems.each do |gem|
@@ -31,7 +37,13 @@ namespace :gems do
         gem_config = gem[:config] ? " -- #{gem[:config]}" : ''
         source = gem[:source] || config[:source] || nil
         source = "--source #{source}" if source
-        ret = system "gem install #{gem[:name]} -v #{gem[:version]} -y #{source} #{docs} #{gem_config}"
+        cmd = ''
+        if gem[:path]
+          cmd = "gem install #{gem[:path]} #{source} #{docs} #{gem_config}"
+        else
+          cmd = "gem install #{gem[:name]} -v #{gem[:version]} -y #{source} #{docs} #{gem_config}"
+        end
+        ret = system cmd
         # something bad happened, pass on the message
         p $? unless ret
       else
