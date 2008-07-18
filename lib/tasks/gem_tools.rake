@@ -16,8 +16,14 @@ namespace :gems do
     #grab the list of gems/version to check
     config = GemTools.load_config
     gems = config[:gems]
+    gem_command = config[:gem_command] || 'gem'
+    gem_dash_y = "1.0" > Gem::RubyGemsVersion ? '-y' : ''
 
     unless gems.nil?
+      if RUBY_PLATFORM =~ /MSWIN/
+        print "rake gems:install doesn't currently work in windows. The commands you need to install the gems will be printed out for you.\n"
+      end
+
       gems.each do |gem|
         # load the gem spec
         gem_spec = YAML.load(`gem spec #{gem[:name]} 2> /dev/null`)
@@ -39,14 +45,20 @@ namespace :gems do
           source = gem[:source] || config[:source] || nil
           source = "--source #{source}" if source
           cmd = ''
+
           if gem[:path]
-            cmd = "gem install #{gem[:path]} #{source} #{docs} #{gem_config}"
+            cmd = "#{gem_command} install #{gem[:path]} #{source} #{docs} #{gem_config}"
           else
-            cmd = "gem install #{gem[:name]} -v #{gem[:version]} -y #{source} #{docs} #{gem_config}"
+            cmd = "#{gem_command} install #{gem[:name]} -v #{gem[:version]} #{gem_dash_y} #{source} #{docs} #{gem_config}"
           end
-          ret = system cmd
-          # something bad happened, pass on the message
-          p $? unless ret
+
+          if RUBY_PLATFORM =~ /MSWIN/
+            print cmd
+          else
+            ret = system cmd
+            # something bad happened, pass on the message
+            p $? unless ret
+          end
         else
           puts "#{gem[:name]} #{gem[:version]} already installed"
         end
